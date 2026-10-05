@@ -79,7 +79,37 @@ def search_listings(
         python -c "from tools import search_listings; print(search_listings('graphic tee', max_price=30))"
     """
     # TODO: replace this with your implementation
-    return []
+    listing = load_listings()
+
+    # filter by max_price
+    if max_price:
+        listing = [item for item in listing if item["price"] <= max_price]
+    
+    # filter by size
+    if size:
+        listing = [item for item in listing if size.lower() in item["size"].lower()]
+    
+    # calculate score for each listing by its description
+    for item in listing:
+        # score it against user description
+        score = 0
+        for keyword in description.lower().split():
+            if keyword in item["description"].lower():
+                score += 1
+
+        item["score"] = score
+    
+    # filter out listings with zero score
+    listing = [item for item in listing if item["score"] > 0]
+    
+    # sort by score
+    listing.sort(key=lambda x: x["score"], reverse=True)
+    
+    # return the top listings
+    return listing[:config.SEARCH_RESULT_LIMIT]
+
+    
+    
 
 
 # ── Tool 2: suggest_outfit ────────────────────────────────────────────────────
@@ -113,7 +143,6 @@ def suggest_outfit(new_item: dict, wardrobe: dict) -> str:
         python -c "from tools import suggest_outfit; from utils.data_loader import get_example_wardrobe, load_listings; print(suggest_outfit(load_listings()[0], get_example_wardrobe()))"
     """
     # TODO: replace this with your implementation
-    return ""
 
 
 # ── Tool 3: create_fit_card ───────────────────────────────────────────────────

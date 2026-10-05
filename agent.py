@@ -15,10 +15,49 @@ Build and test your three tools in `tools.py` first. Then come here.
 
 import config
 import trace
+import re
 from tools import search_listings, suggest_outfit, create_fit_card
 from generate import ModelUnavailable
 
+_PRICE_REGEX = r"(?:under|under)\s*\$?\s*(\d+)"
+_SIZE_WORD_REGEX = r"S|M|L|XL|XXL"
 
+
+def parse_query(query: str) -> dict:
+    """
+    Parse a user query into structured fields.
+    
+    Args:
+        query: The user's query string.
+        
+    Returns:
+        A dictionary with 'description', 'size', and 'max_price'.
+    """
+    price_match = re.search(_PRICE_REGEX, query)
+    size_match = re.search(_SIZE_WORD_REGEX, query)
+
+    if price_match:
+        max_price = int(price_match.group(1))
+    else:
+        max_price = None
+
+    if size_match:
+        size = size_match.group(1)
+    else:
+        size = None
+
+    description = re.sub(r"(under|under)\s*\$?\s*(\d+)", "", query)
+    description = re.sub(r"(size|sz|fit)\s*([A-Za-z]+)", "", description)
+    description = description.strip().replace(",", "")
+
+    parsed = {
+        "description": description,
+        "size": size,
+        "max_price": max_price  
+    }
+    return parsed
+
+        
 # ── session state ─────────────────────────────────────────────────────────────
 
 def new_session(query: str, wardrobe: dict) -> dict:
@@ -46,6 +85,10 @@ def new_session(query: str, wardrobe: dict) -> dict:
         "error": None,               # set when the run ended early
     }
 
+
+def _not_found_message(parsed: dict) -> str:
+    """Return a user-friendly message when no results were found."""
+    return f"No {parsed['description']} in size {parsed['size']} found for under ${parsed['max_price']}."
 
 # ── planning loop ─────────────────────────────────────────────────────────────
 
@@ -107,8 +150,51 @@ def run_agent(query: str, wardrobe: dict) -> dict:
     """
     session = new_session(query, wardrobe)
 
-    # TODO: delete these two lines and build the loop.
-    session["error"] = "The planning loop isn't built yet — see the TODO in agent.py."
+    iteration = 0
+
+    iteration += 1
+
+    trace.check_iterations(iteration)
+    parsed = parse_query(query)
+    session["parsed"] = parsed
+
+
+    iteration += 1
+    trace.check_iterations(iteration)
+    search_results = search_listings(parsed["description"], parsed["size"], parsed["max_price"])
+
+    if not search_results:
+        session["error"] = _not_found_message(parsed)
+        return session
+    
+    session["search_results"] = search_results
+
+    iteration += 1
+    trace.check_iterations(iteration)
+    selected_item = search_results[0]
+    session["selected_item"] = selected_item
+
+    iteration += 1
+    trace.check_iterations(iteration)
+    outfit_suggestion = suggest_outfit(selected_item, wardrobe)
+
+    if not outfit_suggestion:
+        session["error"] = _not_found_message(parsed)
+        return session
+
+    session["outfit_suggestion"] = outfit_suggestion
+
+
+
+    iteration += 1
+    trace.check_iterations(iteration)
+    fit_card = create_fit_card(outfit_suggestion, selected_item)
+    if not fit_card:
+        session["error"] = _not_found_message(parsed)
+        return session
+
+    session["fit_card"] = fit_card
+
     return session
 
 

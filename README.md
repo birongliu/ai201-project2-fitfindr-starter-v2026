@@ -59,21 +59,23 @@
 
 ### `search_listings`
 
-- **What it does:**
-- **Inputs:** <!-- name and type each: `max_price` (float), not "a price" -->
-- **Returns:**
-- **When it has nothing:**
+- **What it does:** this function searches for information based on the matching descriptions of the items
+- **Inputs:**  `descriptions` (str), `size` optional(int), `max_price` optional(int) 
+
+- **Returns:** a list of the item includes id (str), title (str), description (str), category (str), style_tags (list), size (str), condition (str), price (float), colors (list), brand (str or None), platform (str)
+
+- **When it has nothing:** return a list of empty list or none when there nothing is found in the search
 
 ### `suggest_outfit`
 
 - **What it does:**
-- **Inputs:**
+- **Inputs:** 
 - **Returns:**
 - **When it has nothing:**
 
 ### `create_fit_card`
 
-- **What it does:**
+- **What it does:** 
 - **Inputs:**
 - **Returns:**
 - **When it has nothing:**
@@ -97,7 +99,7 @@
 
 **Where it lives:** `agent.py::run_agent`
 
-**How the query is parsed:** <!-- regex, string splitting, or asking the model — say which -->
+**How the query is parsed:** using regex to parse description, size, and max_price from query 
 
 **What moves through the session:** <!-- which fields, in what order -->
 
