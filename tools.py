@@ -142,7 +142,31 @@ def suggest_outfit(new_item: dict, wardrobe: dict) -> str:
     Test it from a terminal before you move on:
         python -c "from tools import suggest_outfit; from utils.data_loader import get_example_wardrobe, load_listings; print(suggest_outfit(load_listings()[0], get_example_wardrobe()))"
     """
-    # TODO: replace this with your implementation
+    if not wardrobe["items"] or len(wardrobe["items"]) == 0:
+        return f"""
+            The wardrobe is empty. 
+            Since you don't have any items in your wardrobe, here is some general styling advice for this item: {new_item}
+            You can try another style or item, or I can try to create a fit card for you with general styling advice!
+        """
+    
+    prompt = f"""
+        Given an outfit idea and a new item, suggest one or two outfits.
+
+        The outfit suggestion should be two to four sentences long and read like a real post.
+
+        You must mention the new item and its price and platform once each.
+
+        The outfit suggestion should be specific about the vibe and style of the outfit.
+
+        The new item is {new_item}.
+
+        Generate an outfit suggestion based on the new item. 
+        Make sure the outfit suggestion is fun and engaging and mentions the new item and its price and platform once each.
+        The outfit suggestion should be specific about the vibe and style of the outfit. 
+        Return only the outfit suggestion.
+    """
+
+    return generate(prompt)
 
 
 # ── Tool 3: create_fit_card ───────────────────────────────────────────────────
@@ -182,4 +206,27 @@ def create_fit_card(outfit: str, new_item: dict) -> str:
         python -c "from tools import create_fit_card; from utils.data_loader import load_listings; print(create_fit_card('jeans and white sneakers', load_listings()[0]))"
     """
     # TODO: replace this with your implementation
-    return ""
+    if not outfit or outfit.strip() == "":
+        return f""" 
+            The outfit is empty. you can try another style or item, or I can try to create a fit card for you with general styling advice!
+        """
+
+    prompt = f"""
+        Given an outfit idea and a new item, create a fun and engaging fit card caption.
+
+        The fit card caption should be two to four sentences long and read like a real post.
+
+        You must mention the new item and its price and platform once each.
+
+        The caption should be specific about the vibe and style of the outfit.
+
+        The outfit is {outfit}.\n\n
+        The new item is {new_item}.\n\n
+
+        Generate a fit card caption based on the outfit suggestion and new item. 
+        Make sure the caption is fun and engaging and mentions the new item and its price and platform once each.
+        The caption should be specific about the vibe and style of the outfit. 
+        Return only the caption.
+    """
+
+    return generate(prompt)
