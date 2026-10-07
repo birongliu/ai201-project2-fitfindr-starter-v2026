@@ -13,6 +13,7 @@ Build and test your three tools in `tools.py` first. Then come here.
     python agent.py          runs both example paths below
 """
 
+import mcp_client
 import config
 import trace
 import re
@@ -161,7 +162,11 @@ def run_agent(query: str, wardrobe: dict) -> dict:
 
     iteration += 1
     trace.check_iterations(iteration)
-    search_results = search_listings(parsed["description"], parsed["size"], parsed["max_price"])
+    search_results = mcp_client.call_tool("search_listings", {
+        "description": parsed["description"],
+        "size": parsed["size"],
+        "max_price": parsed["max_price"]
+    })
 
     if not search_results:
         session["error"] = _not_found_message(parsed)
