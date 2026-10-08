@@ -57,6 +57,7 @@ works with a direct call, and **a documented failure earns the point in full.**
 ─────────────────────────────────────────────────────────────────────────────
 """
 
+import trace
 from mcp.server.fastmcp import FastMCP
 
 from tools import search_listings as _search_listings_impl  # noqa: F401 — you'll use this below
@@ -91,8 +92,13 @@ def search_listings(
         **Returns an empty list when nothing matches — an empty list, not None,
         and not an exception.**
     """
-    
-    return _search_listings_impl(description, size, max_price)
+    try:
+        results = _search_listings_impl(description, size, max_price)
+        trace.step("mcp_server.search_listings", {"description": description, "size": size, "max_price": max_price}, returned=results)
+        return results
+    except Exception as e:
+        trace.step("mcp_server.search_listings", {"description": description, "size": size, "max_price": max_price}, returned=f"Error: {e}")
+        return []
 
 # ──────────────────────────────────────────────────────────────────────────────
 #

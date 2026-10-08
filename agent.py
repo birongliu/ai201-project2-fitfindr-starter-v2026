@@ -20,8 +20,10 @@ import re
 from tools import search_listings, suggest_outfit, create_fit_card
 from generate import ModelUnavailable
 
-_PRICE_REGEX = r"(?:under|under)\s*\$?\s*(\d+)"
-_SIZE_WORD_REGEX = r"S|M|L|XL|XXL"
+_PRICE_REGEX = r"(?i)(?:(?:under|below|less than|max(?:imum)?|for)\s*\$?\s*|\$)\s*(\d+(?:\.\d+)?)"
+_SIZE_PATTERN = r"(?:One\s+Size(?:\s*/\s*Oversized)?|W\d+(?:\s*L\d+)?|US\s+\d+(?:\.\d+)?|XXS|XS|XXL|XXXL|XL|S/M|M/L|L/XL|[SML]|\d+(?:\.\d+)?|small|medium|large|extra\s*large)"
+_SIZE_PREFIX_REGEX = rf"(?i)\b(?:size|sz|fit)\s*[:=]?\s*({_SIZE_PATTERN})\b"
+_SIZE_WORD_REGEX = r"(?i)\b(One\s+Size(?:\s*/\s*Oversized)?|XXS|XS|XXL|XXXL|XL|S/M|M/L|L/XL|[SML]|small|medium|large)\b"
 
 
 def parse_query(query: str) -> dict:
@@ -35,26 +37,32 @@ def parse_query(query: str) -> dict:
         A dictionary with 'description', 'size', and 'max_price'.
     """
     price_match = re.search(_PRICE_REGEX, query)
-    size_match = re.search(_SIZE_WORD_REGEX, query)
-
     if price_match:
-        max_price = int(price_match.group(1))
+        price_str = price_match.group(1)
+        max_price = float(price_str) if "." in price_str else int(price_str)
     else:
         max_price = None
 
+    size_match = re.search(_SIZE_PREFIX_REGEX, query)
     if size_match:
         size = size_match.group(1)
     else:
-        size = None
+        size_match = re.search(_SIZE_WORD_REGEX, query)
+        size = size_match.group(1) if size_match else None
 
-    description = re.sub(r"(under|under)\s*\$?\s*(\d+)", "", query)
-    description = re.sub(r"(size|sz|fit)\s*([A-Za-z]+)", "", description)
-    description = description.strip().replace(",", "")
+    description = re.sub(_PRICE_REGEX, "", query)
+    if re.search(_SIZE_PREFIX_REGEX, description):
+        description = re.sub(rf"(?i)\b(?:size|sz|fit)\s*[:=]?\s*{_SIZE_PATTERN}\b", "", description)
+    elif size:
+        description = re.sub(rf"(?i)\b{re.escape(size)}\b", "", description)
+
+    description = re.sub(r"[,;]+", " ", description)
+    description = re.sub(r"\s+", " ", description).strip()
 
     parsed = {
         "description": description,
         "size": size,
-        "max_price": max_price  
+        "max_price": max_price,
     }
     return parsed
 
@@ -199,7 +207,7 @@ def run_agent(query: str, wardrobe: dict) -> dict:
         return session
 
     session["fit_card"] = fit_card
-
+    print(session)
     return session
 
 
