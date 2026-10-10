@@ -106,7 +106,7 @@ def search_listings(
     listing.sort(key=lambda x: x["score"], reverse=True)
     
     # return the top listings
-    return listing[:config.SEARCH_RESULT_LIMIT]
+    return listing[:config.SEARCH_RESULT_LIMIT] if listing else []
 
     
     
@@ -143,11 +143,12 @@ def suggest_outfit(new_item: dict, wardrobe: dict) -> str:
         python -c "from tools import suggest_outfit; from utils.data_loader import get_example_wardrobe, load_listings; print(suggest_outfit(load_listings()[0], get_example_wardrobe()))"
     """
     if not wardrobe["items"] or len(wardrobe["items"]) == 0:
-        return f"""
+        prompt = f"""
             The wardrobe is empty. 
             Since you don't have any items in your wardrobe, here is some general styling advice for this item: {new_item}
             You can try another style or item, or I can try to create a fit card for you with general styling advice!
         """
+        return generate(prompt)
     
     prompt = f"""
         Given an outfit idea and a new item, suggest one or two outfits.
@@ -205,11 +206,12 @@ def create_fit_card(outfit: str, new_item: dict) -> str:
     Test it from a terminal before you move on:
         python -c "from tools import create_fit_card; from utils.data_loader import load_listings; print(create_fit_card('jeans and white sneakers', load_listings()[0]))"
     """
-    # TODO: replace this with your implementation
+
     if not outfit or outfit.strip() == "":
-        return f""" 
+        prompt = f""" 
             The outfit is empty. you can try another style or item, or I can try to create a fit card for you with general styling advice!
         """
+        return generate(prompt)
 
     prompt = f"""
         Given an outfit idea and a new item, create a fun and engaging fit card caption.

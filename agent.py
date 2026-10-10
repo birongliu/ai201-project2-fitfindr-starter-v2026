@@ -20,10 +20,10 @@ import re
 from tools import search_listings, suggest_outfit, create_fit_card
 from generate import ModelUnavailable
 
-_PRICE_REGEX = r"(?i)(?:(?:under|below|less than|max(?:imum)?|for)\s*\$?\s*|\$)\s*(\d+(?:\.\d+)?)"
-_SIZE_PATTERN = r"(?:One\s+Size(?:\s*/\s*Oversized)?|W\d+(?:\s*L\d+)?|US\s+\d+(?:\.\d+)?|XXS|XS|XXL|XXXL|XL|S/M|M/L|L/XL|[SML]|\d+(?:\.\d+)?|small|medium|large|extra\s*large)"
-_SIZE_PREFIX_REGEX = rf"(?i)\b(?:size|sz|fit)\s*[:=]?\s*({_SIZE_PATTERN})\b"
-_SIZE_WORD_REGEX = r"(?i)\b(One\s+Size(?:\s*/\s*Oversized)?|XXS|XS|XXL|XXXL|XL|S/M|M/L|L/XL|[SML]|small|medium|large)\b"
+_PRICE_RE = re.compile(r"(?:under|below|less than|max|up to)?\s*\$\s*(\d+(?:\.\d+)?)", re.I)
+_SIZE_WORDS = r"XXS|XS|S|M|L|XL|XXL"
+_SIZE_RE = re.compile(rf"\bsize\s+({_SIZE_WORDS}|US\s*\d+(?:\.\d+)?|W\d+)\b", re.I)
+_BARE_SIZE_RE = re.compile(rf",\s*({_SIZE_WORDS})\s*$", re.I)
 
 
 def parse_query(query: str) -> dict:
@@ -36,37 +36,23 @@ def parse_query(query: str) -> dict:
     Returns:
         A dictionary with 'description', 'size', and 'max_price'.
     """
-    price_match = re.search(_PRICE_REGEX, query)
+    text = query or ""
+
+    max_price = None
+    price_match = _PRICE_RE.search(text)
     if price_match:
-        price_str = price_match.group(1)
-        max_price = float(price_str) if "." in price_str else int(price_str)
-    else:
-        max_price = None
+        max_price = float(price_match.group(1))
+        text = text[:price_match.start()] + " " + text[price_match.end():]
 
-    size_match = re.search(_SIZE_PREFIX_REGEX, query)
+    size = None
+    size_match = _SIZE_RE.search(text) or _BARE_SIZE_RE.search(text)
     if size_match:
-        size = size_match.group(1)
-    else:
-        size_match = re.search(_SIZE_WORD_REGEX, query)
-        size = size_match.group(1) if size_match else None
+        size = re.sub(r"\s+", " ", size_match.group(1)).strip().upper()
+        text = text[:size_match.start()] + " " + text[size_match.end():]
 
-    description = re.sub(_PRICE_REGEX, "", query)
-    if re.search(_SIZE_PREFIX_REGEX, description):
-        description = re.sub(rf"(?i)\b(?:size|sz|fit)\s*[:=]?\s*{_SIZE_PATTERN}\b", "", description)
-    elif size:
-        description = re.sub(rf"(?i)\b{re.escape(size)}\b", "", description)
+    description = re.sub(r"[ ,\s]+", " ", text).strip(" ,")
+    return {"description": description, "size": size, "max_price": max_price}
 
-    description = re.sub(r"[,;]+", " ", description)
-    description = re.sub(r"\s+", " ", description).strip()
-
-    parsed = {
-        "description": description,
-        "size": size,
-        "max_price": max_price,
-    }
-    return parsed
-
-        
 # ── session state ─────────────────────────────────────────────────────────────
 
 def new_session(query: str, wardrobe: dict) -> dict:
@@ -170,11 +156,13 @@ def run_agent(query: str, wardrobe: dict) -> dict:
 
     iteration += 1
     trace.check_iterations(iteration)
-    search_results = mcp_client.call_tool("search_listings", {
+    search_args = {
         "description": parsed["description"],
         "size": parsed["size"],
         "max_price": parsed["max_price"]
-    })
+    }
+    search_results = mcp_client.call_tool("search_listings", search_args)
+    trace.step("search_listings (via MCP)", search_args, returned=search_results)
 
     if not search_results:
         session["error"] = _not_found_message(parsed)
@@ -207,7 +195,6 @@ def run_agent(query: str, wardrobe: dict) -> dict:
         return session
 
     session["fit_card"] = fit_card
-    print(session)
     return session
 
 

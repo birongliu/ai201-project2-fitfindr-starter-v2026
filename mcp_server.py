@@ -57,6 +57,8 @@ works with a direct call, and **a documented failure earns the point in full.**
 ─────────────────────────────────────────────────────────────────────────────
 """
 
+import contextlib
+import sys
 import trace
 from mcp.server.fastmcp import FastMCP
 
@@ -94,10 +96,11 @@ def search_listings(
     """
     try:
         results = _search_listings_impl(description, size, max_price)
+        # stdout is the JSON-RPC channel here; trace.step prints, so send it to stderr.
         trace.step("mcp_server.search_listings", {"description": description, "size": size, "max_price": max_price}, returned=results)
         return results
     except Exception as e:
-        trace.step("mcp_server.search_listings", {"description": description, "size": size, "max_price": max_price}, returned=f"Error: {e}")
+        #trace.step("mcp_server.search_listings", {"description": description, "size": size, "max_price": max_price}, returned=f"Error: {e}")
         return []
 
 # ──────────────────────────────────────────────────────────────────────────────
