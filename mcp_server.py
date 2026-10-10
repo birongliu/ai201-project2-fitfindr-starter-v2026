@@ -97,10 +97,12 @@ def search_listings(
     try:
         results = _search_listings_impl(description, size, max_price)
         # stdout is the JSON-RPC channel here; trace.step prints, so send it to stderr.
-        trace.step("mcp_server.search_listings", {"description": description, "size": size, "max_price": max_price}, returned=results)
+        with contextlib.redirect_stdout(sys.stderr):
+            trace.step("mcp_server.search_listings", {"description": description, "size": size, "max_price": max_price}, returned=results)
         return results
     except Exception as e:
-        #trace.step("mcp_server.search_listings", {"description": description, "size": size, "max_price": max_price}, returned=f"Error: {e}")
+        with contextlib.redirect_stdout(sys.stderr):
+            trace.step("mcp_server.search_listings", {"description": description, "size": size, "max_price": max_price}, returned=f"Error: {e}")
         return []
 
 # ──────────────────────────────────────────────────────────────────────────────

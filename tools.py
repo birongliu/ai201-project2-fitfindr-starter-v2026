@@ -93,10 +93,11 @@ def search_listings(
     for item in listing:
         # score it against user description
         score = 0
+        # TODO: add more robust scoring logic
         for keyword in description.lower().split():
             if keyword in item["description"].lower():
                 score += 1
-
+            
         item["score"] = score
     
     # filter out listings with zero score
