@@ -62,7 +62,11 @@ import sys
 import trace
 from mcp.server.fastmcp import FastMCP
 
-from tools import search_listings as _search_listings_impl  # noqa: F401 — you'll use this below
+from tools import (
+    search_listings as _search_listings_impl,
+    suggest_outfit as _suggest_outfit_impl,
+    create_fit_card as _create_fit_card_impl,
+)  # noqa: F401 — you'll use this below
 
 # log_level="WARNING" keeps the server from printing an INFO line for every
 # request. Without it your terminal fills with "Processing request of type
@@ -105,6 +109,49 @@ def search_listings(
             trace.step("mcp_server.search_listings", {"description": description, "size": size, "max_price": max_price}, returned=f"Error: {e}")
         return []
 
+@mcp.tool()
+def suggest_outfit(new_item: dict, wardrobe: dict) -> str:
+    """
+    Suggest an outfit for the given new item, using the user's wardrobe.
+
+    Args:
+        new_item:   the new item to build an outfit around.
+        wardrobe:   the user's current wardrobe.
+
+    Returns:
+        A string describing an outfit that incorporates the new item.
+    """
+    try:
+        results = _suggest_outfit_impl(new_item, wardrobe)
+        trace.step("mcp_server.suggest_outfit", {"new_item": new_item, "wardrobe": wardrobe}, returned=results)
+        return results
+    except Exception as e:
+        trace.step("mcp_server.suggest_outfit", {"new_item": new_item, "wardrobe": wardrobe}, returned=f"Error: {e}")
+        return ""
+
+@mcp.tool()
+def create_fit_card(outfit: str, selected_item: dict) -> str:
+    """
+    Create a fit card for the given outfit and selected item.
+
+    Args:
+        outfit:         the suggested outfit.
+        selected_item:  the new item to build an outfit around.
+
+    Returns:
+        A string describing an outfit that incorporates the new item.
+    """
+    
+    try:
+        results = _create_fit_card_impl(outfit, selected_item)
+        trace.step("mcp_server.create_fit_card", {"outfit": outfit, "selected_item": selected_item}, returned=results)
+        return results
+    except Exception as e:
+        trace.step("mcp_server.create_fit_card", {"outfit": outfit, "selected_item": selected_item}, returned=f"Error: {e}")
+        return ""
+
+
+    
 # ──────────────────────────────────────────────────────────────────────────────
 #
 # Two notes on the block above.
